@@ -45,7 +45,7 @@ namespace supra
 	private:
 		QLabel* p_labelImage;
 
-	public slots:
+	public Q_SLOTS:  // [TEE patch] Q_SLOTS not slots -- see SUPRA_GUI's QT_NO_KEYWORDS in CMakeLists.txt
 		/// QT slot that triggers an update of the visualization with the passed image
 		void previewReadyImage(const std::shared_ptr<QImage> image);
 	};

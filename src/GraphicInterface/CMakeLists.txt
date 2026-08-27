@@ -36,6 +36,10 @@ ExternalProject_Add(
 	#--Download step--------------
 	GIT_REPOSITORY ${NodeEditor_GIT_REPOSITORY}
 	GIT_TAG ${NodeEditor_GIT_TAG}
+	#--Patch step-----------------
+	# [TEE patch] see patch_nodeeditor_qt_compat.cmake
+	PATCH_COMMAND ${CMAKE_COMMAND} -DNODEEDITOR_SOURCE_DIR=${NodeEditor_DIR}
+	  -P ${CMAKE_CURRENT_SOURCE_DIR}/patch_nodeeditor_qt_compat.cmake
 	#--Configure step-------------
 	CMAKE_ARGS
 	  -DCMAKE_RUNTIME_OUTPUT_DIRECTORY:PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
@@ -46,6 +50,11 @@ ExternalProject_Add(
 	  -DQt5_DIR=${Qt5_DIR}
 	  -DCMAKE_INSTALL_PREFIX=${NodeEditor_DIR}_install
 	  -DNODE_EDITOR_STATIC=
+	  # [TEE patch] NodeEditor's own CMakeLists.txt predates CMake 3.5
+	  # (removed in CMake >= 4.0, same issue as externals/supra itself --
+	  # see the CMAKE_POLICY_VERSION_MINIMUM scoping around
+	  # add_subdirectory(externals/supra) in the root CMakeLists.txt).
+	  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 	#--Build step-----------------
 	#BUILD_ALWAYS 0
 	#--Install step-----------------
@@ -121,11 +130,27 @@ LINK_DIRECTORIES(SUPRA_GUI
 	${SUPRA_Lib_LIBDIRS}
 )
 
-add_executable(SUPRA_GUI ${SOURCES} ${HEADERS} ${MOC_HEADERS} ${FORMS} ${UIS})
+# [TEE patch] Generic extension point: TEE_SUPRA_GUI_EXTRA_SOURCES/
+# TEE_SUPRA_GUI_EXTRA_INCLUDE_DIRS let an out-of-tree caller (our own root
+# CMakeLists.txt, when TEE_BUILD_SUPRA_GUI is ON) compile extra input-device
+# sources directly into this executable, e.g. to register with
+# InterfaceFactory::registerInputDeviceCreator() (see InterfaceFactory.h).
+# Both are empty by default, so a normal SUPRA_GUI build is unaffected.
+add_executable(SUPRA_GUI ${SOURCES} ${HEADERS} ${MOC_HEADERS} ${FORMS} ${UIS} ${TEE_SUPRA_GUI_EXTRA_SOURCES})
+if(TEE_SUPRA_GUI_EXTRA_INCLUDE_DIRS)
+	target_include_directories(SUPRA_GUI PRIVATE ${TEE_SUPRA_GUI_EXTRA_INCLUDE_DIRS})
+endif()
 
 TARGET_COMPILE_DEFINITIONS(SUPRA_GUI
 	PRIVATE ${SUPRA_Lib_DEFINES}
-	${CAMPVIS_DEFINITIONS} NODE_EDITOR_STATIC)
+	${CAMPVIS_DEFINITIONS} NODE_EDITOR_STATIC
+	# [TEE patch] Qt's emit/signals/slots keyword macros collide with an
+	# identically-named method in TBB's profiling.h (both this GUI's own
+	# sources and SupraLib pull in TBB via tbb/flow_graph.h) --
+	# "expected unqualified-id" when a TU includes both. QT_NO_KEYWORDS
+	# disables those macros; call sites use Q_EMIT/Q_SIGNALS/Q_SLOTS instead
+	# (already converted throughout this directory).
+	QT_NO_KEYWORDS)
 
 if(NOT SUPRA_INTERFACE_GRAPHIC_CMD)
 	# generate proper GUI program on specified platform

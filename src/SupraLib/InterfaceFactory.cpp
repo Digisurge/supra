@@ -143,6 +143,12 @@ namespace supra
 			retVal = make_shared<UltrasoundInterfaceBeamformedMock>(*pG, nodeID);
 		}
 #endif
+		// [TEE patch] fall back to any (graph, nodeID)-only input device
+		// registered via registerInputDeviceCreator() -- see InterfaceFactory.h.
+		if (!retVal && inputCreators().count(deviceType) != 0)
+		{
+			retVal = inputCreators()[deviceType](*pG, nodeID);
+		}
 
 		logging::log_error_if(!((bool)retVal),
 			"Error creating input device. Requested type '", deviceType, "' is unknown. Did you activate the corresponding module in the build of the library?");
@@ -204,13 +210,26 @@ namespace supra
 	std::vector<std::string> InterfaceFactory::getNodeTypes()
 	{
 		std::vector<std::string> nodeTypes(m_nodeCreators.size());
-		std::transform(m_nodeCreators.begin(), m_nodeCreators.end(), nodeTypes.begin(), 
+		std::transform(m_nodeCreators.begin(), m_nodeCreators.end(), nodeTypes.begin(),
 			[](std::pair<std::string, nodeCreationFunctionType> entry) { return entry.first; });
 		return nodeTypes;
 	}
 
-	std::map<std::string, InterfaceFactory::nodeCreationFunctionType> 
-		InterfaceFactory::m_nodeCreators = 
+	// [TEE patch] construct-on-first-use -- see the declaration in InterfaceFactory.h.
+	std::map<std::string, InterfaceFactory::inputCreationFunctionType>& InterfaceFactory::inputCreators()
+	{
+		static std::map<std::string, inputCreationFunctionType> creators;
+		return creators;
+	}
+
+	// [TEE patch]
+	void InterfaceFactory::registerInputDeviceCreator(const std::string& deviceType, inputCreationFunctionType creator)
+	{
+		inputCreators()[deviceType] = creator;
+	}
+
+	std::map<std::string, InterfaceFactory::nodeCreationFunctionType>
+		InterfaceFactory::m_nodeCreators =
 	{
 		{ "StreamSynchronizer",     [](tbb::flow::graph& g, std::string nodeID, bool queueing) { return make_shared<StreamSynchronizer>(g, nodeID, queueing); } },
 		{ "TemporalOffsetNode",     [](tbb::flow::graph& g, std::string nodeID, bool queueing) { return make_shared<TemporalOffsetNode>(g, nodeID, queueing); } },

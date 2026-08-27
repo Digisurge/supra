@@ -392,7 +392,7 @@ namespace supra
 		std::unique_ptr<parameterWidgetTypeHandlerGeneral> m_pTypeHandler;
 		QVBoxLayout *m_verticalLayout;
 
-	public slots:
+	public Q_SLOTS:  // [TEE patch] Q_SLOTS not slots -- see SUPRA_GUI's QT_NO_KEYWORDS in CMakeLists.txt
 		/// Slots for the parameter changes of the various widget types
 		void valueChanged(const QString & text);
 		/// Slots for the parameter changes of the various widget types

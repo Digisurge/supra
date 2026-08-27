@@ -134,7 +134,7 @@ namespace supra
 
 	void MainWindow::quitCallback()
 	{
-		emit externClose();
+		Q_EMIT externClose();  // [TEE patch] Q_EMIT not emit -- see SUPRA_GUI's QT_NO_KEYWORDS in CMakeLists.txt
 	}
 
 	void MainWindow::closeEvent(QCloseEvent *event)

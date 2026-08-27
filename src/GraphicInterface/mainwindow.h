@@ -90,7 +90,7 @@ namespace supra
 
 		QPoint m_previousCursorPosition;
 
-	public slots:
+	public Q_SLOTS:  // [TEE patch] Q_SLOTS not slots -- see SUPRA_GUI's QT_NO_KEYWORDS in CMakeLists.txt
 		/// Slot that asks the user for the path to a configuration file
 		/// and subsequently loads it, i.e. creates the graph as specified in the config
 		void loadConfigFileAction();
@@ -126,7 +126,7 @@ namespace supra
 		/// Slot that adds or removes preview widgets on selection
 		void previewCheckboxChanged(bool state);
 
-	signals:
+	Q_SIGNALS:  // [TEE patch] Q_SIGNALS not signals -- see SUPRA_GUI's QT_NO_KEYWORDS in CMakeLists.txt
 		void externClose();
 	};
 }

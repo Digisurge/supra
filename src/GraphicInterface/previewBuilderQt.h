@@ -90,7 +90,7 @@ namespace supra
 		virtual tbb::flow::graph_node *
 			getInput(size_t index);
 
-	signals:
+	Q_SIGNALS:  // [TEE patch] Q_SIGNALS not signals -- see SUPRA_GUI's QT_NO_KEYWORDS in CMakeLists.txt
 		/// QT signal that is emitted, when an image preview is ready
 		void previewReadyImage(const std::shared_ptr<QImage> image);
 		/// QT signal that is emitted, when a \see RecordObject is received

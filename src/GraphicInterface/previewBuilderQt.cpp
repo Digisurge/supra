@@ -97,7 +97,7 @@ namespace supra
 #ifdef HAVE_CAMPVIS
 					if (useCampVis)
 					{
-						emit previewReadyObject(inMessage);
+						Q_EMIT previewReadyObject(inMessage);  // [TEE patch] Q_EMIT not emit -- see SUPRA_GUI's QT_NO_KEYWORDS in CMakeLists.txt
 					}
 #else
 					useCampVis = false;
@@ -194,7 +194,7 @@ namespace supra
 							Qt::IgnoreAspectRatio,
 							(m_linearInterpolation ? Qt::SmoothTransformation : Qt::FastTransformation));
 
-						emit previewReadyImage(qtimage);
+						Q_EMIT previewReadyImage(qtimage);
 					}
 				}
 			}
@@ -278,7 +278,7 @@ namespace supra
 						Qt::IgnoreAspectRatio,
 						(m_linearInterpolation ? Qt::SmoothTransformation : Qt::FastTransformation));
 
-					emit previewReadyImage(qtimage);
+					Q_EMIT previewReadyImage(qtimage);
 				}
 			}
 			else if (inMessage->getType() == TypeTrackerDataSet)
@@ -287,7 +287,7 @@ namespace supra
 				logging::log_error_if(!inTrackerData, "Error casting a record object to TrackerDataSet, although the type was 'TypeTrackerDataSet'");
 				if (inTrackerData)
 				{
-					emit previewReadyTracking(inTrackerData);
+					Q_EMIT previewReadyTracking(inTrackerData);
 				}
 			}
 		}

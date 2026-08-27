@@ -51,7 +51,7 @@ namespace supra
 		std::vector<QProgressBar*> m_qualityBars;
 		std::vector<QLabel*> m_labels;
 
-	public slots:
+	public Q_SLOTS:  // [TEE patch] Q_SLOTS not slots -- see SUPRA_GUI's QT_NO_KEYWORDS in CMakeLists.txt
 		/// QT slot that triggers an update of the visualization with the passed TrackerDataSet
 		void previewReadyTracking(const std::shared_ptr<TrackerDataSet> trackerSet);
 	};
