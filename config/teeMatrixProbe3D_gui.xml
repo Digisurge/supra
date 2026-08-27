@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  teeMatrixProbe3D_gui.xml -- SUPRA_GUI (SUPRA's native Qt node-graph GUI)
+  config for the 4D TEE matrix-array probe bridge (see
+  src/supra_bridge/tee_raw_input_node.{h,cpp} and
+  src/supra_bridge/tee_supra_registration.cpp, which registers the
+  "TeeRawInputNode" type used below).
+
+  This is SUPRA's own generic node-graph editor + parameter panel + image
+  preview -- not the curated cardiac-view app (tee_realtime --gl). Use it to
+  inspect/tune the raw beamforming graph directly with SUPRA's own tooling.
+
+  Load with:  build/bin/SUPRA_GUI --config externals/supra/config/teeMatrixProbe3D_gui.xml
+  (add --autostart to start the graph immediately; only built when this
+  project is configured with -DTEE_BUILD_SUPRA_GUI=ON)
+
+  Set rawSourceSpec below to a recorded .traw file before starting the graph
+  (see include/tee/raw_source_file.h for the format) -- there is no live TEE
+  device backend in this project yet (tee/raw_source_device.h is a stub).
+-->
+<supra_config>
+	<devices>
+		<inputs>
+			<input type="TeeRawInputNode" id="TEE-RAW">
+				<param name="rawSourceSpec" type="string">file:/path/to/recording.traw,loop</param>
+				<param name="frequencyHz" type="double">30</param>
+				<param name="dopplerEnabled" type="bool">1</param>
+			</input>
+		</inputs>
+		<nodes>
+			<node type="BeamformingNode" id="BEAM">
+			</node>
+			<node type="HilbertFirEnvelopeNode" id="ENV"/>
+			<node type="ScanConverterNode" id="SCAN">
+				<param name="imageResolution" type="double">0.18</param>
+				<param name="imageResolutionForced" type="bool">1</param>
+			</node>
+		</nodes>
+	</devices>
+	<connections>
+		<connection>
+			<from id="TEE-RAW" port="0"/>
+			<to id="BEAM" port="0"/>
+		</connection>
+		<connection>
+			<from id="BEAM" port="0"/>
+			<to id="ENV" port="0"/>
+		</connection>
+		<connection>
+			<from id="ENV" port="0"/>
+			<to id="SCAN" port="0"/>
+		</connection>
+	</connections>
+</supra_config>
