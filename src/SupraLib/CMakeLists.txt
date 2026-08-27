@@ -63,6 +63,15 @@ IF(SUPRA_CUDA)
 	set(CUDA_SEPARABLE_COMPILATION ON)
 	MESSAGE(STATUS "Found Cuda Version " ${CUDA_VERSION_STRING})
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-Wno-deprecated-gpu-targets;--use_fast_math;--default-stream=per-thread;-lineinfo")
+	# [TEE patch] TBB >= 2021's detail/_machine.h unconditionally includes
+	# <immintrin.h>, which on newer glibc/gcc (>=13.x here) unconditionally
+	# pulls in amxtileintrin.h/amxint8intrin.h/etc. Those headers declare
+	# their intrinsics via "#pragma GCC target(...)"-scoped builtins, which
+	# nvcc's own front-end does not understand ("identifier ... is undefined"),
+	# even though real g++ compiles them fine. We don't need AMX/BF16 in any
+	# .cu file here, so pre-define each header's include guard to make it a
+	# no-op rather than trying to make nvcc understand the pragma trick.
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-D_AMXTILEINTRIN_H_INCLUDED;-D_AMXINT8INTRIN_H_INCLUDED;-D_AMXBF16INTRIN_H_INCLUDED;-D_AMXFP16INTRIN_H_INCLUDED;-D_AMXCOMPLEXINTRIN_H_INCLUDED")
 	IF(CUDA_VERSION_STRING VERSION_GREATER "8.0")
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};--Wno-deprecated-declarations")
 		IF(BUILD_SHARED_LIBS AND NOT WIN32)
@@ -495,6 +504,17 @@ SOURCE_GROUP(inc FILES ${SUPRA_Lib_HEADERS})
 
 INCLUDE_DIRECTORIES(SUPRA_Lib
 	${SUPRA_Lib_INCLUDEDIRS})
+
+# [TEE patch] Legacy CUDA_ADD_LIBRARY() (FindCUDA) builds its nvcc command
+# lines when called below and does not see TARGET_COMPILE_DEFINITIONS()
+# added afterwards (further down in this file). Without HAVE_CUDA visible
+# while compiling .cu files, utilities/cudaUtility.h's #else branch redefines
+# __host__/__device__ to empty, which breaks nvcc's parsing of real
+# __device__-annotated CUDA runtime headers (and, on newer glibc/gcc, of
+# host-only intrinsic headers nvcc normally skips in properly-annotated code).
+foreach(_supra_lib_def ${SUPRA_Lib_DEFINES})
+	add_definitions(-D${_supra_lib_def})
+endforeach()
 
 IF(CUDA_FOUND)
 CUDA_ADD_LIBRARY(SUPRA_Lib

@@ -322,6 +322,18 @@ namespace supra
 		}
 	}
 
+	// [TEE patch] rxBeamformingDTSPACE3DKernel below caches every transducer
+	// element position into shared memory (x_elemsDTsh/z_elemsDTsh, sized by
+	// its 4th template arg, "maxNumElements"), then indexes that cache by
+	// absolute element index for every active element in the aperture with
+	// NO bounds check. It was hardcoded to 1024 here, silently corrupting
+	// results (reading uninitialized/out-of-range shared memory) for any
+	// array with more elements -- our 4D TEE matrix probe has 3072. Bumped
+	// to cover it; shared-memory cost is 3072*4 bytes * 2 arrays = 24KB,
+	// comfortably under the 48KB per-block default on every architecture we
+	// target (see CMakeLists.txt's SUPRA_CUDA_PORTABLE arch list).
+	constexpr unsigned int kTeeMaxRxElements = 3072;
+
 	template <class SampleBeamformer, unsigned int maxWindowFunctionNumel, typename RFType, typename ResultType, typename LocationType>
 	void rxBeamformingDTspaceCuda3D(
 		bool interpolateRFlines,
@@ -358,7 +370,7 @@ namespace supra
 			{
 				if(elementToChannelMap)
 				{
-					rxBeamformingDTSPACE3DKernel<SampleBeamformer, true, true, 1024, maxWindowFunctionNumel, true> << <gridSize, blockSize, 0, stream >> > (
+					rxBeamformingDTSPACE3DKernel<SampleBeamformer, true, true, kTeeMaxRxElements, maxWindowFunctionNumel, true> << <gridSize, blockSize, 0, stream >> > (
 						(uint32_t)numTransducerElements, static_cast<vec2T<uint32_t>>(elementLayout),
 						(uint32_t)numReceivedChannels, (uint32_t)numTimesteps, RF,
 						(uint32_t)numTxScanlines, (uint32_t)numRxScanlines, scanlines,
@@ -366,7 +378,7 @@ namespace supra
 				}
 				else
 				{
-					rxBeamformingDTSPACE3DKernel<SampleBeamformer, true, true, 1024, maxWindowFunctionNumel, false> << <gridSize, blockSize, 0, stream >> > (
+					rxBeamformingDTSPACE3DKernel<SampleBeamformer, true, true, kTeeMaxRxElements, maxWindowFunctionNumel, false> << <gridSize, blockSize, 0, stream >> > (
 						(uint32_t)numTransducerElements, static_cast<vec2T<uint32_t>>(elementLayout),
 						(uint32_t)numReceivedChannels, (uint32_t)numTimesteps, RF,
 						(uint32_t)numTxScanlines, (uint32_t)numRxScanlines, scanlines,
@@ -376,7 +388,7 @@ namespace supra
 			else {
 				if (elementToChannelMap)
 				{
-					rxBeamformingDTSPACE3DKernel<SampleBeamformer, true, false, 1024, maxWindowFunctionNumel, true> << <gridSize, blockSize, 0, stream >> > (
+					rxBeamformingDTSPACE3DKernel<SampleBeamformer, true, false, kTeeMaxRxElements, maxWindowFunctionNumel, true> << <gridSize, blockSize, 0, stream >> > (
 						(uint32_t)numTransducerElements, static_cast<vec2T<uint32_t>>(elementLayout),
 						(uint32_t)numReceivedChannels, (uint32_t)numTimesteps, RF,
 						(uint32_t)numTxScanlines, (uint32_t)numRxScanlines, scanlines,
@@ -384,7 +396,7 @@ namespace supra
 				}
 				else
 				{
-					rxBeamformingDTSPACE3DKernel<SampleBeamformer, true, false, 1024, maxWindowFunctionNumel, false> << <gridSize, blockSize, 0, stream >> > (
+					rxBeamformingDTSPACE3DKernel<SampleBeamformer, true, false, kTeeMaxRxElements, maxWindowFunctionNumel, false> << <gridSize, blockSize, 0, stream >> > (
 						(uint32_t)numTransducerElements, static_cast<vec2T<uint32_t>>(elementLayout),
 						(uint32_t)numReceivedChannels, (uint32_t)numTimesteps, RF,
 						(uint32_t)numTxScanlines, (uint32_t)numRxScanlines, scanlines,
@@ -397,7 +409,7 @@ namespace supra
 			{
 				if (elementToChannelMap)
 				{
-					rxBeamformingDTSPACE3DKernel<SampleBeamformer, false, true, 1024, maxWindowFunctionNumel, true> << <gridSize, blockSize, 0, stream >> > (
+					rxBeamformingDTSPACE3DKernel<SampleBeamformer, false, true, kTeeMaxRxElements, maxWindowFunctionNumel, true> << <gridSize, blockSize, 0, stream >> > (
 						(uint32_t)numTransducerElements, static_cast<vec2T<uint32_t>>(elementLayout),
 						(uint32_t)numReceivedChannels, (uint32_t)numTimesteps, RF,
 						(uint32_t)numTxScanlines, (uint32_t)numRxScanlines, scanlines,
@@ -405,7 +417,7 @@ namespace supra
 				}
 				else
 				{
-					rxBeamformingDTSPACE3DKernel<SampleBeamformer, false, true, 1024, maxWindowFunctionNumel, false> << <gridSize, blockSize, 0, stream >> > (
+					rxBeamformingDTSPACE3DKernel<SampleBeamformer, false, true, kTeeMaxRxElements, maxWindowFunctionNumel, false> << <gridSize, blockSize, 0, stream >> > (
 						(uint32_t)numTransducerElements, static_cast<vec2T<uint32_t>>(elementLayout),
 						(uint32_t)numReceivedChannels, (uint32_t)numTimesteps, RF,
 						(uint32_t)numTxScanlines, (uint32_t)numRxScanlines, scanlines,
@@ -416,7 +428,7 @@ namespace supra
 				if (elementToChannelMap)
 				{
 
-					rxBeamformingDTSPACE3DKernel<SampleBeamformer, false, false, 1024, maxWindowFunctionNumel, true> << <gridSize, blockSize, 0, stream >> > (
+					rxBeamformingDTSPACE3DKernel<SampleBeamformer, false, false, kTeeMaxRxElements, maxWindowFunctionNumel, true> << <gridSize, blockSize, 0, stream >> > (
 						(uint32_t)numTransducerElements, static_cast<vec2T<uint32_t>>(elementLayout),
 						(uint32_t)numReceivedChannels, (uint32_t)numTimesteps, RF,
 						(uint32_t)numTxScanlines, (uint32_t)numRxScanlines, scanlines,
@@ -424,7 +436,7 @@ namespace supra
 				}
 				else
 				{
-					rxBeamformingDTSPACE3DKernel<SampleBeamformer, false, false, 1024, maxWindowFunctionNumel, false> << <gridSize, blockSize, 0, stream >> > (
+					rxBeamformingDTSPACE3DKernel<SampleBeamformer, false, false, kTeeMaxRxElements, maxWindowFunctionNumel, false> << <gridSize, blockSize, 0, stream >> > (
 						(uint32_t)numTransducerElements, static_cast<vec2T<uint32_t>>(elementLayout),
 						(uint32_t)numReceivedChannels, (uint32_t)numTimesteps, RF,
 						(uint32_t)numTxScanlines, (uint32_t)numRxScanlines, scanlines,

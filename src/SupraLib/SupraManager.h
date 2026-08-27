@@ -62,11 +62,18 @@ namespace supra
 		bool addNode(std::string nodeID, std::shared_ptr<AbstractNode> node, std::string nodeType);
 		std::string addNode(std::string nodeType, bool queueing = false);
 
+		// [TEE patch] Perfect-forward constructor args instead of taking them
+		// by value: the original signature copied every argument (its
+		// by-value parameter pack, forwarded as lvalues), which cannot bind
+		// a move-only argument like std::unique_ptr<T> (compile error: "use
+		// of deleted copy constructor") -- needed to construct
+		// TeeRawInputNode, which owns a std::unique_ptr<tee::RawDataSource>.
+		// Behavior for existing copyable-argument callers is unchanged.
 		template <class nodeToConstruct, typename... constructorArgTypes>
-		bool addNodeConstruct(std::string nodeID, std::string nodeType, constructorArgTypes... constructorArgs)
+		bool addNodeConstruct(std::string nodeID, std::string nodeType, constructorArgTypes&&... constructorArgs)
 		{
 			std::shared_ptr<AbstractNode> newNode = std::shared_ptr<AbstractNode>(
-				new nodeToConstruct(*m_graph, nodeID, constructorArgs...));
+				new nodeToConstruct(*m_graph, nodeID, std::forward<constructorArgTypes>(constructorArgs)...));
 
 			return addNode(nodeID, newNode, nodeType);
 		}

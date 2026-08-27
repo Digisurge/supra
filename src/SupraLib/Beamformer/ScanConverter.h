@@ -34,6 +34,12 @@ namespace supra
 		std::shared_ptr<Container<uint8_t> > getMask();
 		void updateInternals(const std::shared_ptr<const USImageProperties> & inImageProps);
 		vec3s getImageSize() const { return m_imageSize; }
+		// [TEE patch] Physical position (mm) of the scan-converted output
+		// volume's first voxel. Needed to align two independently
+		// scan-converted volumes with different (e.g. B-mode vs. a small
+		// Doppler ROI) input geometry but the same resolution onto one
+		// combined voxel grid -- see supra_bridge/tee_doppler_iq_node.cpp.
+		vec getBoundingBoxMin() const { return m_bbMin; }
 
 	private:
 		static constexpr double m_skewnessTestThreshold = 1e-6;

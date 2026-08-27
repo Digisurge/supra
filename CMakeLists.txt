@@ -83,6 +83,17 @@ IF(SUPRA_WARNINGS_AS_ERRORS)
 ENDIF(SUPRA_WARNINGS_AS_ERRORS)
 	
 ADD_SUBDIRECTORY(src/SupraLib)
+# [TEE patch] SupraLib/CMakeLists.txt exports SUPRA_Lib_INCLUDEDIRS/
+# _LIBRARIES/_DEFINES to this directory's scope (PARENT_SCOPE) so sibling
+# subdirectories added below (e.g. src/Wrapper) can consume them, but this
+# file never re-exports them further -- so a project that adds *this*
+# directory via add_subdirectory() (as TeeUltraRealtime's root CMakeLists
+# does) cannot see them. Re-export one more hop so our own bridge code can
+# link against SupraLib the same way SUPRA_Wrapper does.
+SET(SUPRA_Lib_INCLUDEDIRS ${SUPRA_Lib_INCLUDEDIRS} PARENT_SCOPE)
+SET(SUPRA_Lib_LIBRARIES   ${SUPRA_Lib_LIBRARIES}   PARENT_SCOPE)
+SET(SUPRA_Lib_DEFINES     ${SUPRA_Lib_DEFINES}     PARENT_SCOPE)
+
 IF(SUPRA_INTERFACE_COMMANDLINE)
 ADD_SUBDIRECTORY(src/CommandlineInterface)
 ENDIF(SUPRA_INTERFACE_COMMANDLINE)
